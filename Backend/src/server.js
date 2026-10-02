@@ -56,7 +56,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Doctor Tracker API is running 🚀',
+    message: 'Asclepia API is running 🚀',
     timestamp: new Date().toISOString(),
   });
 });

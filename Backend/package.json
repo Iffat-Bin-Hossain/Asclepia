@@ -1,7 +1,7 @@
 {
   "name": "doctor-tracker-backend",
   "version": "1.0.0",
-  "description": "Doctor Tracker REST API - Node.js/Express backend",
+  "description": "Asclepia REST API - Node.js/Express backend",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -9,7 +9,12 @@
     "seed": "node seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["doctor-tracker", "express", "mongodb", "jwt"],
+  "keywords": [
+    "doctor-tracker",
+    "express",
+    "mongodb",
+    "jwt"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -21,7 +26,8 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "nodemailer": "^10.0.13"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

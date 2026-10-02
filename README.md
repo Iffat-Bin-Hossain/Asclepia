@@ -1,4 +1,4 @@
-# Asclepia – Doctor Tracker
+# Asclepia – Clinical & Patient Management Portal
 
 > A secure, high-performance administrative web application for managing doctors and patients with real-time analytics, JWT-based authentication, and MongoDB-powered data intelligence.
 
@@ -6,7 +6,7 @@
 
 ## 🚀 Elevator Pitch
 
-**Doctor Tracker** (branded as *Asclepia*) is a full-stack administrative portal that empowers healthcare administrators to efficiently manage medical staff and patient registries in one centralized, beautiful interface.
+**Asclepia** is a full-stack administrative portal that empowers healthcare administrators to efficiently manage medical staff and patient registries in one centralized, beautiful interface.
 
 Key differentiators:
 - **Server-side everything** — search, filter, pagination, and analytics all live in optimized MongoDB aggregation pipelines and compound indexes, not client-side JS
@@ -93,7 +93,7 @@ Navigate to `http://localhost:3000` and use:
 ## 🏗️ System Architecture
 
 ```
-Doctor Tracker/
+ASCLEPIA/
 ├── Backend/                    # Standalone Express API Server
 │   ├── src/
 │   │   ├── config/

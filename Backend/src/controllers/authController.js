@@ -1,5 +1,6 @@
 const Admin = require('../models/Admin');
 const { generateToken } = require('../utils/helpers');
+const { sendWelcomeEmail } = require('../utils/emailService');
 const { validationResult } = require('express-validator');
 
 /**
@@ -82,6 +83,11 @@ const register = async (req, res, next) => {
 
     const admin = await Admin.create({ email, password, name: name || 'Administrator' });
     const token = generateToken(admin._id);
+
+    // Dispatch real email notification asynchronously
+    sendWelcomeEmail(email, admin.name).catch((err) => {
+      console.error('[Email Dispatch Warning]', err.message);
+    });
 
     res.status(201).json({
       success: true,
