@@ -6,7 +6,7 @@
 
 ## 🚀 Elevator Pitch
 
-**Asclepia** is a full-stack administrative portal that empowers healthcare administrators to efficiently manage medical staff and patient registries in one centralized, beautiful interface.
+**Asclepia** is a full-stack administrative portal that empowers healthcare administrators to efficiently manage doctors and patient registries in one centralized, beautiful interface.
 
 Key differentiators:
 - **Server-side everything** — search, filter, pagination, and analytics all live in optimized MongoDB aggregation pipelines and compound indexes, not client-side JS

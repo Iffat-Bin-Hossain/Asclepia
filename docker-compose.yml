@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      # Fix for Linux kernel 6.19+ and 7.x (MongoDB SERVER-121912 TCMalloc rseq incompatibility)
+      - GLIBC_TUNABLES=glibc.pthread.rseq=1
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

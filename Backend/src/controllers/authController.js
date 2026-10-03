@@ -81,7 +81,7 @@ const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
     }
 
-    const admin = await Admin.create({ email, password, name: name || 'Administrator' });
+    const admin = await Admin.create({ email, password, name: name || 'Admin' });
     const token = generateToken(admin._id);
 
     // Dispatch real email notification asynchronously
