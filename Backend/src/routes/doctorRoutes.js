@@ -7,6 +7,7 @@ const {
   updateDoctor,
   deleteDoctor,
   getDoctorPatients,
+  getSpecializations,
   assignPatient,
   removePatient,
 } = require('../controllers/doctorController');
@@ -31,6 +32,9 @@ const doctorValidation = [
 
 // All routes protected
 router.use(protect);
+
+// Meta / filters
+router.get('/specializations', getSpecializations);
 
 // CRUD
 router.get('/', getDoctors);

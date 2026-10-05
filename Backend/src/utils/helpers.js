@@ -12,18 +12,33 @@ const generateToken = (id) => {
 };
 
 /**
- * Build a paginated response object
+ * Safely escape regex characters to prevent regex injection or syntax errors
+ * (e.g. searching phone numbers with +, parenthesis, or special chars)
  */
-const paginateResponse = (data, total, page, limit) => ({
-  data,
-  pagination: {
-    total,
-    page: parseInt(page),
-    limit: parseInt(limit),
-    totalPages: Math.ceil(total / limit),
-    hasNextPage: page * limit < total,
-    hasPrevPage: page > 1,
-  },
-});
+const escapeRegex = (string = '') => {
+  return String(string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
-module.exports = { generateToken, paginateResponse };
+/**
+ * Build a paginated response object with normalized integer values
+ */
+const paginateResponse = (data, total, page, limit) => {
+  const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+  const parsedLimit = Math.max(1, parseInt(limit, 10) || 10);
+  const totalPages = Math.max(1, Math.ceil(total / parsedLimit));
+
+  return {
+    data,
+    pagination: {
+      total,
+      page: parsedPage,
+      limit: parsedLimit,
+      totalPages,
+      hasNextPage: parsedPage < totalPages,
+      hasPrevPage: parsedPage > 1,
+    },
+  };
+};
+
+module.exports = { generateToken, paginateResponse, escapeRegex };
+

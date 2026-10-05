@@ -1,10 +1,11 @@
 const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
+const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
-const { paginateResponse } = require('../utils/helpers');
+const { paginateResponse, escapeRegex } = require('../utils/helpers');
 
 /**
- * @desc  Get all patients with search, filter, pagination
+ * @desc  Get all patients with smart multi-parameter search, filters, pagination
  * @route GET /api/patients
  * @access Private
  */
@@ -17,51 +18,164 @@ const getPatients = async (req, res, next) => {
       condition = '',
       gender = '',
       assignedDoctor = '',
+      dateType = 'createdAt', // 'createdAt' or 'admissionDate'
       startDate = '',
       endDate = '',
+      minAge = '',
+      maxAge = '',
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = req.query;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const query = {};
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const skip = (parsedPage - 1) * parsedLimit;
 
-    // Full-text search
-    if (search.trim()) {
-      query.$text = { $search: search.trim() };
+    const filterConditions = [];
+
+    // =============================================
+    // Smart multi-parameter search
+    // Searches across: name, email, phone, condition,
+    // gender, diagnosis, address, notes, age,
+    // and assigned doctor name/specialization/hospital/phone/email
+    // =============================================
+    const cleanSearch = search.trim();
+    if (cleanSearch) {
+      const searchRegex = new RegExp(escapeRegex(cleanSearch), 'i');
+
+      // Check if any doctors match this search term
+      const matchingDoctors = await Doctor.find({
+        $or: [
+          { name: searchRegex },
+          { specialization: searchRegex },
+          { hospital: searchRegex },
+          { phone: searchRegex },
+          { email: searchRegex },
+        ],
+      })
+        .select('_id')
+        .lean();
+
+      const matchingDoctorIds = matchingDoctors.map((d) => d._id);
+
+      const searchOr = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { phone: searchRegex },
+        { condition: searchRegex },
+        { gender: searchRegex },
+        { diagnosis: searchRegex },
+        { address: searchRegex },
+        { notes: searchRegex },
+      ];
+
+      // If search query is a number, match exact age as well
+      const numericVal = parseInt(cleanSearch, 10);
+      if (!isNaN(numericVal) && String(numericVal) === cleanSearch) {
+        searchOr.push({ age: numericVal });
+      }
+
+      // If search query is a date (YYYY-MM-DD or YYYY-MM)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cleanSearch)) {
+        const sDate = new Date(cleanSearch);
+        const eDate = new Date(cleanSearch);
+        eDate.setHours(23, 59, 59, 999);
+        searchOr.push(
+          { createdAt: { $gte: sDate, $lte: eDate } },
+          { admissionDate: { $gte: sDate, $lte: eDate } }
+        );
+      } else if (/^\d{4}-\d{2}$/.test(cleanSearch)) {
+        const [y, m] = cleanSearch.split('-').map(Number);
+        const sDate = new Date(y, m - 1, 1);
+        const eDate = new Date(y, m, 0, 23, 59, 59, 999);
+        searchOr.push(
+          { createdAt: { $gte: sDate, $lte: eDate } },
+          { admissionDate: { $gte: sDate, $lte: eDate } }
+        );
+      }
+
+      // If any doctor matched, include patients assigned to those doctors
+      if (matchingDoctorIds.length > 0) {
+        searchOr.push({ assignedDoctor: { $in: matchingDoctorIds } });
+      }
+
+      filterConditions.push({ $or: searchOr });
     }
 
-    // Filters
-    if (condition) query.condition = condition;
-    if (gender) query.gender = gender;
-    if (assignedDoctor) query.assignedDoctor = assignedDoctor;
-
-    // Date range on createdAt
-    if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.createdAt.$lte = end;
+    // Condition filter (single or comma-separated)
+    if (condition && condition !== 'all') {
+      if (condition.includes(',')) {
+        const conditionsList = condition.split(',').map((c) => c.trim()).filter(Boolean);
+        filterConditions.push({ condition: { $in: conditionsList } });
+      } else {
+        filterConditions.push({ condition: condition.trim() });
       }
     }
 
-    const sortOptions = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+    // Gender filter
+    if (gender && gender !== 'all') {
+      filterConditions.push({ gender: gender.trim() });
+    }
+
+    // Assigned Doctor filter
+    if (assignedDoctor && assignedDoctor !== 'all') {
+      if (assignedDoctor === 'unassigned') {
+        filterConditions.push({
+          $or: [
+            { assignedDoctor: null },
+            { assignedDoctor: { $exists: false } },
+          ],
+        });
+      } else if (assignedDoctor === 'assigned') {
+        filterConditions.push({
+          assignedDoctor: { $ne: null, $exists: true },
+        });
+      } else if (mongoose.Types.ObjectId.isValid(assignedDoctor)) {
+        filterConditions.push({ assignedDoctor: new mongoose.Types.ObjectId(assignedDoctor) });
+      }
+    }
+
+    // Age range filters
+    if (minAge !== '' || maxAge !== '') {
+      const ageQuery = {};
+      if (minAge !== '') ageQuery.$gte = parseInt(minAge, 10);
+      if (maxAge !== '') ageQuery.$lte = parseInt(maxAge, 10);
+      filterConditions.push({ age: ageQuery });
+    }
+
+    // Date range filter (dateType = 'createdAt' or 'admissionDate')
+    if (startDate || endDate) {
+      const targetDateField = dateType === 'admissionDate' ? 'admissionDate' : 'createdAt';
+      const dateQuery = {};
+      if (startDate) dateQuery.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateQuery.$lte = end;
+      }
+      filterConditions.push({ [targetDateField]: dateQuery });
+    }
+
+    const query = filterConditions.length > 0 ? { $and: filterConditions } : {};
+
+    // Validate sortBy field
+    const allowedSortFields = ['createdAt', 'updatedAt', 'name', 'age', 'condition', 'admissionDate'];
+    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const sortOptions = { [safeSortBy]: sortOrder === 'asc' ? 1 : -1 };
 
     const [patients, total] = await Promise.all([
       Patient.find(query)
-        .populate('assignedDoctor', 'name specialization')
+        .populate('assignedDoctor', 'name specialization hospital email phone')
         .sort(sortOptions)
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(parsedLimit)
         .lean(),
       Patient.countDocuments(query),
     ]);
 
     res.status(200).json({
       success: true,
-      ...paginateResponse(patients, total, page, limit),
+      ...paginateResponse(patients, total, parsedPage, parsedLimit),
     });
   } catch (error) {
     next(error);
