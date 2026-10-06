@@ -12,7 +12,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('dt_token');
+      const token = sessionStorage.getItem('dt_token') || localStorage.getItem('dt_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -27,6 +27,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
+      sessionStorage.removeItem('dt_token');
+      sessionStorage.removeItem('dt_admin');
       localStorage.removeItem('dt_token');
       localStorage.removeItem('dt_admin');
       const publicPaths = ['/', '/login', '/register'];

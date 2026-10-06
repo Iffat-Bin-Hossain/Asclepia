@@ -241,6 +241,8 @@ export default function RegisterPage() {
                   id="register-signout"
                   type="button"
                   onClick={() => {
+                    sessionStorage.removeItem('dt_token');
+                    sessionStorage.removeItem('dt_admin');
                     localStorage.removeItem('dt_token');
                     localStorage.removeItem('dt_admin');
                     window.location.replace('/register');

@@ -43,17 +43,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           u.name = 'Admin';
         }
         setAdmin(u);
-        localStorage.setItem('dt_admin', JSON.stringify(u));
+        sessionStorage.setItem('dt_admin', JSON.stringify(u));
       }
     } catch {
       // Ignore background refresh failure
     }
   }, []);
 
-  // Initialize from localStorage on mount
+  // Initialize from sessionStorage on mount (and clean legacy localStorage)
   useEffect(() => {
-    const storedToken = localStorage.getItem('dt_token');
-    const storedAdmin = localStorage.getItem('dt_admin');
+    try {
+      // Clean any lingering permanent storage from previous sessions
+      localStorage.removeItem('dt_token');
+      localStorage.removeItem('dt_admin');
+    } catch {
+      // ignore
+    }
+
+    const storedToken = sessionStorage.getItem('dt_token');
+    const storedAdmin = sessionStorage.getItem('dt_admin');
 
     if (storedToken && storedAdmin) {
       try {
@@ -61,12 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(storedAdmin);
         if (parsed?.name === 'System Administrator' || parsed?.name === 'Administrator') {
           parsed.name = 'Admin';
-          localStorage.setItem('dt_admin', JSON.stringify(parsed));
+          sessionStorage.setItem('dt_admin', JSON.stringify(parsed));
         }
         setAdmin(parsed);
       } catch {
-        localStorage.removeItem('dt_token');
-        localStorage.removeItem('dt_admin');
+        sessionStorage.removeItem('dt_token');
+        sessionStorage.removeItem('dt_admin');
       }
     }
     setIsLoading(false);
@@ -78,18 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshProfile();
 
     const onFocus = () => refreshProfile();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'dt_admin' && e.newValue) {
-        try {
-          setAdmin(JSON.parse(e.newValue));
-        } catch {
-          // ignore
-        }
-      }
-    };
 
     window.addEventListener('focus', onFocus);
-    window.addEventListener('storage', onStorage);
 
     const interval = setInterval(() => {
       refreshProfile();
@@ -97,7 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.removeEventListener('focus', onFocus);
-      window.removeEventListener('storage', onStorage);
       clearInterval(interval);
     };
   }, [token, refreshProfile]);
@@ -110,8 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userData.name = 'Admin';
       }
       if (data.token) {
-        localStorage.setItem('dt_token', data.token);
-        localStorage.setItem('dt_admin', JSON.stringify(userData));
+        sessionStorage.setItem('dt_token', data.token);
+        sessionStorage.setItem('dt_admin', JSON.stringify(userData));
         setToken(data.token);
         setAdmin(userData);
       }
@@ -120,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const logout = useCallback(() => {
+    sessionStorage.removeItem('dt_token');
+    sessionStorage.removeItem('dt_admin');
     localStorage.removeItem('dt_token');
     localStorage.removeItem('dt_admin');
     setToken(null);
