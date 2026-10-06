@@ -109,6 +109,129 @@ const initialDoctors = [
   },
 ];
 
+const initialPatients = [
+  {
+    name: 'Md. Rahat Hossain',
+    age: 42,
+    gender: 'Male',
+    condition: 'Stable',
+    doctorEmail: 'sakurul.islam@lancethospital.com',
+    phone: '01712-458921',
+    email: 'rahat.hossain@example.com',
+    diagnosis: 'Knee Osteoarthritis',
+    address: 'Mirpur, Dhaka',
+    notes: 'Chronic knee pain with difficulty walking. Recommended X-ray and orthopedic follow-up.',
+  },
+  {
+    name: 'Nusrat Jahan',
+    age: 27,
+    gender: 'Female',
+    condition: 'Fair',
+    doctorEmail: 'moynul.hasan@shukhee.com',
+    phone: '01819-673245',
+    email: 'nusrat.jahan@example.com',
+    diagnosis: 'Anxiety Disorder',
+    address: 'Dhanmondi, Dhaka',
+    notes: 'Reports persistent anxiety and sleep difficulty. Scheduled for psychotherapy assessment.',
+  },
+  {
+    name: 'Tanvir Ahmed',
+    age: 35,
+    gender: 'Male',
+    condition: 'Good',
+    doctorEmail: 'fahmina.sobhan@ustc.edu.bd',
+    phone: '01915-284763',
+    email: 'tanvir.ahmed@example.com',
+    diagnosis: 'Chronic Sinusitis',
+    address: 'Agrabad, Chattogram',
+    notes: 'Recurrent nasal congestion and facial pressure. ENT evaluation advised.',
+  },
+  {
+    name: 'Md. Shakil Mia',
+    age: 58,
+    gender: 'Male',
+    condition: 'Serious',
+    doctorEmail: 'shafiqul.dewan@nidch.gov.bd',
+    phone: '01624-839517',
+    email: 'shakil.mia@example.com',
+    diagnosis: 'Chronic Obstructive Pulmonary Disease',
+    address: 'Uttara, Dhaka',
+    notes: 'Shortness of breath with exertion and chronic cough. Under respiratory evaluation.',
+  },
+  {
+    name: 'Ayesha Rahman',
+    age: 8,
+    gender: 'Female',
+    condition: 'Stable',
+    doctorEmail: 'joynab.rima@cmch.gov.bd',
+    phone: '01318-562794',
+    email: 'ayesha.rahman@example.com',
+    diagnosis: 'Acute Bronchitis',
+    address: 'Sylhet City, Sylhet',
+    notes: 'Cough and mild fever for several days. Hydration and pediatric follow-up advised.',
+  },
+  {
+    name: 'Farhana Akter',
+    age: 46,
+    gender: 'Female',
+    condition: 'Fair',
+    doctorEmail: 'farzana.yasmin@magosmani.gov.bd',
+    phone: '01745-927316',
+    email: 'farhana.akter@example.com',
+    diagnosis: 'Type 2 Diabetes Mellitus',
+    address: 'Zindabazar, Sylhet',
+    notes: 'Elevated blood glucose reported. Medication review and glucose monitoring advised.',
+  },
+  {
+    name: 'Md. Kamal Uddin',
+    age: 61,
+    gender: 'Male',
+    condition: 'Under Observation',
+    doctorEmail: 'suman.chowdhury@cmch.gov.bd',
+    phone: '01837-415829',
+    email: 'kamal.uddin@example.com',
+    diagnosis: 'Hypertension',
+    address: 'Panchlaish, Chattogram',
+    notes: 'Elevated blood pressure on examination. Monitoring and medication adjustment under consideration.',
+  },
+  {
+    name: 'Sadia Islam',
+    age: 31,
+    gender: 'Female',
+    condition: 'Good',
+    doctorEmail: 'jahik.miah@kaitakhospital.com',
+    phone: '01928-746351',
+    email: 'sadia.islam@example.com',
+    diagnosis: 'Allergic Rhinitis',
+    address: 'Sunamganj Sadar, Sunamganj',
+    notes: 'Sneezing, nasal irritation and intermittent congestion. ENT consultation completed.',
+  },
+  {
+    name: 'Md. Nazmul Hasan',
+    age: 50,
+    gender: 'Male',
+    condition: 'Stable',
+    doctorEmail: 'nazim.uddin@deltamedical.com',
+    phone: '01618-395742',
+    email: 'nazmul.hasan@example.com',
+    diagnosis: 'Type 2 Diabetes with Gastritis',
+    address: 'Uttara, Dhaka',
+    notes: 'Follow-up for diabetes management with intermittent gastric discomfort.',
+  },
+  {
+    name: 'Rafiul Karim',
+    age: 24,
+    gender: 'Male',
+    condition: 'Good',
+    doctorEmail: 'akhlas.bhuiyan@alharamain.com',
+    phone: '01309-824615',
+    email: 'rafiul.karim@example.com',
+    diagnosis: 'Sports-related Ankle Injury',
+    address: 'Sylhet Sadar, Sylhet',
+    notes: 'Ankle pain following a sports injury. Advised rest, imaging if symptoms persist, and orthopedic follow-up.',
+  },
+];
+
 const seed = async () => {
   try {
     await mongoose.connect(MONGO_URI);
@@ -137,8 +260,41 @@ const seed = async () => {
     }
     console.log(`[Seed] Seeded ${initialDoctors.length} clinical doctors into database.`);
 
+    // Insert or update the 10 patients and link them to doctors
+    for (const p of initialPatients) {
+      const doctor = await Doctor.findOne({ email: p.doctorEmail });
+      const doctorId = doctor ? doctor._id : null;
+      const patientData = {
+        name: p.name,
+        age: p.age,
+        gender: p.gender,
+        condition: p.condition,
+        assignedDoctor: doctorId,
+        phone: p.phone,
+        email: p.email,
+        diagnosis: p.diagnosis,
+        address: p.address,
+        notes: p.notes,
+        admissionDate: new Date(),
+      };
+
+      const patient = await Patient.findOneAndUpdate(
+        { email: p.email },
+        { $set: patientData },
+        { upsert: true, new: true }
+      );
+
+      if (doctorId) {
+        await Doctor.findByIdAndUpdate(doctorId, {
+          $addToSet: { patients: patient._id },
+        });
+      }
+    }
+    console.log(`[Seed] Seeded ${initialPatients.length} patients and linked to doctors.`);
+
     const totalDocs = await Doctor.countDocuments();
-    console.log(`[Seed] Total doctors active in database: ${totalDocs}`);
+    const totalPatients = await Patient.countDocuments();
+    console.log(`[Seed] Total doctors: ${totalDocs}, Total patients: ${totalPatients}`);
 
     process.exit(0);
   } catch (error) {
