@@ -60,7 +60,7 @@ app.use('/api/assistants', assistantRoutes);
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Asclepia API is running 🚀',
+    message: 'Asclepia API is running',
     timestamp: new Date().toISOString(),
   });
 });
@@ -73,7 +73,7 @@ app.use(errorHandler);
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 
 module.exports = app;
