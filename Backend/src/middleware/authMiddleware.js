@@ -23,16 +23,28 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await Admin.findById(decoded.id).select('-password');
+    const user = await Admin.findById(decoded.id)
+      .select('-password')
+      .populate('assignedDoctor');
 
-    if (!admin) {
+    if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Token is invalid. Admin not found.',
+        message: 'Token is invalid. Account not found.',
       });
     }
 
-    req.admin = admin;
+    if (user.role === 'assistant' && user.status !== 'approved') {
+      return res.status(403).json({
+        success: false,
+        message: user.status === 'pending'
+          ? 'Signup request pending. Please wait for admin approval.'
+          : 'Your assistant account has been rejected.',
+      });
+    }
+
+    req.user = user;
+    req.admin = user; // backwards compatibility
     next();
   } catch (error) {
     let message = 'Token is invalid.';
@@ -43,4 +55,17 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+/**
+ * Restrict route to admin role only
+ */
+const requireAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    message: 'Access denied: Administrator privileges required.',
+  });
+};
+
+module.exports = { protect, requireAdmin };

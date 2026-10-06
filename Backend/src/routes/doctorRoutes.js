@@ -11,7 +11,7 @@ const {
   assignPatient,
   removePatient,
 } = require('../controllers/doctorController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, requireAdmin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -39,9 +39,9 @@ router.get('/specializations', getSpecializations);
 // CRUD
 router.get('/', getDoctors);
 router.get('/:id', getDoctorById);
-router.post('/', doctorValidation, createDoctor);
-router.put('/:id', doctorValidation, updateDoctor);
-router.delete('/:id', deleteDoctor);
+router.post('/', requireAdmin, doctorValidation, createDoctor);
+router.put('/:id', requireAdmin, doctorValidation, updateDoctor);
+router.delete('/:id', requireAdmin, deleteDoctor);
 
 // Patient management for a doctor
 router.get('/:id/patients', getDoctorPatients);

@@ -17,15 +17,15 @@ const login = async (req, res, next) => {
 
     const { email, password } = req.body;
 
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
+    const user = await Admin.findOne({ email }).populate('assignedDoctor');
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials.',
       });
     }
 
-    const isMatch = await admin.comparePassword(password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -33,13 +33,30 @@ const login = async (req, res, next) => {
       });
     }
 
-    const token = generateToken(admin._id);
+    // Role check: If assistant is not approved, prevent login
+    if (user.role === 'assistant') {
+      if (user.status === 'pending') {
+        return res.status(403).json({
+          success: false,
+          message: 'Signup request pending. Please wait for admin approval.',
+        });
+      }
+      if (user.status === 'rejected') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your assistant signup request has been rejected.',
+        });
+      }
+    }
+
+    const token = generateToken(user._id);
 
     res.status(200).json({
       success: true,
       message: 'Login successful.',
       token,
-      admin: admin.toJSON(),
+      admin: user.toJSON(),
+      user: user.toJSON(),
     });
   } catch (error) {
     next(error);
@@ -47,7 +64,7 @@ const login = async (req, res, next) => {
 };
 
 /**
- * @desc  Get current admin profile
+ * @desc  Get current user profile
  * @route GET /api/auth/me
  * @access Private
  */
@@ -56,6 +73,7 @@ const getMe = async (req, res, next) => {
     res.status(200).json({
       success: true,
       admin: req.admin,
+      user: req.user,
     });
   } catch (error) {
     next(error);
@@ -63,7 +81,7 @@ const getMe = async (req, res, next) => {
 };
 
 /**
- * @desc  Register a new admin
+ * @desc  Register a new assistant (pending admin approval)
  * @route POST /api/auth/register
  * @access Public
  */
@@ -81,19 +99,32 @@ const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
     }
 
-    const admin = await Admin.create({ email, password, name: name || 'Admin' });
-    const token = generateToken(admin._id);
+    // Signup role is strictly for assistant, with status pending approval
+    const assistant = await Admin.create({
+      email,
+      password,
+      name: name || 'Assistant',
+      role: 'assistant',
+      status: 'pending',
+      assignedDoctor: null,
+    });
 
-    // Dispatch real email notification asynchronously
-    sendWelcomeEmail(email, admin.name).catch((err) => {
+    // Asynchronously dispatch notification if configured
+    sendWelcomeEmail(email, assistant.name).catch((err) => {
       console.error('[Email Dispatch Warning]', err.message);
     });
 
     res.status(201).json({
       success: true,
-      message: 'Account created successfully.',
-      token,
-      admin: admin.toJSON(),
+      message: 'Signup request submitted successfully. Pending admin approval.',
+      pendingApproval: true,
+      assistant: {
+        _id: assistant._id,
+        email: assistant.email,
+        name: assistant.name,
+        role: assistant.role,
+        status: assistant.status,
+      },
     });
   } catch (error) {
     next(error);

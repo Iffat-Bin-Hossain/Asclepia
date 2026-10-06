@@ -1,7 +1,7 @@
 const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const { validationResult } = require('express-validator');
-const { paginateResponse, escapeRegex } = require('../utils/helpers');
+const { paginateResponse, escapeRegex, parseDateSearchRange } = require('../utils/helpers');
 
 /**
  * @desc  Get all doctors with smart multi-parameter search, filter, pagination
@@ -45,17 +45,10 @@ const getDoctors = async (req, res, next) => {
         { bio: searchRegex },
       ];
 
-      // If search looks like a date (YYYY-MM-DD or YYYY-MM)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(cleanSearch)) {
-        const sDate = new Date(cleanSearch);
-        const eDate = new Date(cleanSearch);
-        eDate.setHours(23, 59, 59, 999);
-        searchOr.push({ createdAt: { $gte: sDate, $lte: eDate } });
-      } else if (/^\d{4}-\d{2}$/.test(cleanSearch)) {
-        const [y, m] = cleanSearch.split('-').map(Number);
-        const sDate = new Date(y, m - 1, 1);
-        const eDate = new Date(y, m, 0, 23, 59, 59, 999);
-        searchOr.push({ createdAt: { $gte: sDate, $lte: eDate } });
+      // Support versatile date searches across registration date (createdAt)
+      const dateRange = parseDateSearchRange(cleanSearch);
+      if (dateRange) {
+        searchOr.push({ createdAt: { $gte: dateRange.start, $lte: dateRange.end } });
       }
 
       filterConditions.push({ $or: searchOr });
@@ -238,6 +231,20 @@ const getDoctorPatients = async (req, res, next) => {
     const parsedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
     const skip = (parsedPage - 1) * parsedLimit;
 
+    // Role enforcement for Assistant
+    if (req.user && req.user.role === 'assistant') {
+      const assignedId = req.user.assignedDoctor?._id
+        ? req.user.assignedDoctor._id.toString()
+        : req.user.assignedDoctor?.toString();
+
+      if (!assignedId || assignedId !== req.params.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You are only authorized to view patients for your assigned doctor.',
+        });
+      }
+    }
+
     const doctor = await Doctor.findById(req.params.id).lean();
     if (!doctor) {
       return res.status(404).json({ success: false, message: 'Doctor not found.' });
@@ -263,6 +270,16 @@ const getDoctorPatients = async (req, res, next) => {
       if (!isNaN(numericVal) && String(numericVal) === cleanSearch) {
         searchOr.push({ age: numericVal });
       }
+
+      // Date search in search box
+      const dateRange = parseDateSearchRange(cleanSearch);
+      if (dateRange) {
+        searchOr.push(
+          { admissionDate: { $gte: dateRange.start, $lte: dateRange.end } },
+          { createdAt: { $gte: dateRange.start, $lte: dateRange.end } }
+        );
+      }
+
       filterConditions.push({ $or: searchOr });
     }
 
@@ -342,6 +359,20 @@ const assignPatient = async (req, res, next) => {
   try {
     const { id: doctorId, patientId } = req.params;
 
+    // Role enforcement for Assistant
+    if (req.user && req.user.role === 'assistant') {
+      const assignedId = req.user.assignedDoctor?._id
+        ? req.user.assignedDoctor._id.toString()
+        : req.user.assignedDoctor?.toString();
+
+      if (!assignedId || assignedId !== doctorId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You are only authorized to assign patients to your assigned doctor.',
+        });
+      }
+    }
+
     const [doctor, patient] = await Promise.all([
       Doctor.findById(doctorId),
       Patient.findById(patientId),
@@ -374,6 +405,20 @@ const assignPatient = async (req, res, next) => {
 const removePatient = async (req, res, next) => {
   try {
     const { id: doctorId, patientId } = req.params;
+
+    // Role enforcement for Assistant
+    if (req.user && req.user.role === 'assistant') {
+      const assignedId = req.user.assignedDoctor?._id
+        ? req.user.assignedDoctor._id.toString()
+        : req.user.assignedDoctor?.toString();
+
+      if (!assignedId || assignedId !== doctorId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You are only authorized to remove patients from your assigned doctor.',
+        });
+      }
+    }
 
     const [doctor, patient] = await Promise.all([
       Doctor.findById(doctorId),

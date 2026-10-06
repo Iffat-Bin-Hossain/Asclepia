@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 const patientRoutes = require('./routes/patientRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const assistantRoutes = require('./routes/assistantRoutes');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 // Initialize Express
@@ -31,8 +32,10 @@ app.use(
         'http://localhost:3001',
         'http://localhost:3002',
       ];
-      // Allow requests with no origin (curl, Postman, server-to-server)
-      if (!origin || allowed.includes(origin)) return callback(null, true);
+      // Allow requests with no origin (curl, Postman, server-to-server) or Vercel deployments
+      if (!origin || allowed.includes(origin) || origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
@@ -51,6 +54,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/assistants', assistantRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

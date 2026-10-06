@@ -2,7 +2,7 @@ const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
-const { paginateResponse, escapeRegex } = require('../utils/helpers');
+const { paginateResponse, escapeRegex, parseDateSearchRange } = require('../utils/helpers');
 
 /**
  * @desc  Get all patients with smart multi-parameter search, filters, pagination
@@ -32,6 +32,19 @@ const getPatients = async (req, res, next) => {
     const skip = (parsedPage - 1) * parsedLimit;
 
     const filterConditions = [];
+
+    // Assistant Role Enforcement:
+    if (req.user && req.user.role === 'assistant') {
+      if (!req.user.assignedDoctor) {
+        return res.status(200).json({
+          success: true,
+          noDoctorAssigned: true,
+          ...paginateResponse([], 0, parsedPage, parsedLimit),
+        });
+      }
+      const assignedId = req.user.assignedDoctor._id || req.user.assignedDoctor;
+      filterConditions.push({ assignedDoctor: assignedId });
+    }
 
     // =============================================
     // Smart multi-parameter search
@@ -75,22 +88,12 @@ const getPatients = async (req, res, next) => {
         searchOr.push({ age: numericVal });
       }
 
-      // If search query is a date (YYYY-MM-DD or YYYY-MM)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(cleanSearch)) {
-        const sDate = new Date(cleanSearch);
-        const eDate = new Date(cleanSearch);
-        eDate.setHours(23, 59, 59, 999);
+      // Support versatile date searches across admissionDate or createdAt
+      const dateRange = parseDateSearchRange(cleanSearch);
+      if (dateRange) {
         searchOr.push(
-          { createdAt: { $gte: sDate, $lte: eDate } },
-          { admissionDate: { $gte: sDate, $lte: eDate } }
-        );
-      } else if (/^\d{4}-\d{2}$/.test(cleanSearch)) {
-        const [y, m] = cleanSearch.split('-').map(Number);
-        const sDate = new Date(y, m - 1, 1);
-        const eDate = new Date(y, m, 0, 23, 59, 59, 999);
-        searchOr.push(
-          { createdAt: { $gte: sDate, $lte: eDate } },
-          { admissionDate: { $gte: sDate, $lte: eDate } }
+          { admissionDate: { $gte: dateRange.start, $lte: dateRange.end } },
+          { createdAt: { $gte: dateRange.start, $lte: dateRange.end } }
         );
       }
 
@@ -215,6 +218,17 @@ const createPatient = async (req, res, next) => {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
+    // If assistant, auto-assign to the assistant's doctor
+    if (req.user && req.user.role === 'assistant') {
+      if (!req.user.assignedDoctor) {
+        return res.status(403).json({
+          success: false,
+          message: 'No doctor assigned yet. You cannot create patients.',
+        });
+      }
+      req.body.assignedDoctor = req.user.assignedDoctor._id || req.user.assignedDoctor;
+    }
+
     const patient = await Patient.create(req.body);
 
     // If a doctor is assigned, add patient to doctor's list
@@ -245,6 +259,22 @@ const updatePatient = async (req, res, next) => {
     const oldPatient = await Patient.findById(req.params.id);
     if (!oldPatient) {
       return res.status(404).json({ success: false, message: 'Patient not found.' });
+    }
+
+    // If assistant, verify authority over this patient
+    if (req.user && req.user.role === 'assistant') {
+      if (!req.user.assignedDoctor) {
+        return res.status(403).json({ success: false, message: 'No doctor assigned yet.' });
+      }
+      const assignedId = (req.user.assignedDoctor._id || req.user.assignedDoctor).toString();
+      if (oldPatient.assignedDoctor?.toString() !== assignedId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You can only update patients of your assigned doctor.',
+        });
+      }
+      // Assistant cannot change assigned doctor
+      req.body.assignedDoctor = assignedId;
     }
 
     const oldDoctorId = oldPatient.assignedDoctor?.toString();
@@ -286,6 +316,20 @@ const deletePatient = async (req, res, next) => {
     const patient = await Patient.findById(req.params.id);
     if (!patient) {
       return res.status(404).json({ success: false, message: 'Patient not found.' });
+    }
+
+    // If assistant, verify authority over this patient
+    if (req.user && req.user.role === 'assistant') {
+      if (!req.user.assignedDoctor) {
+        return res.status(403).json({ success: false, message: 'No doctor assigned yet.' });
+      }
+      const assignedId = (req.user.assignedDoctor._id || req.user.assignedDoctor).toString();
+      if (patient.assignedDoctor?.toString() !== assignedId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You can only delete patients of your assigned doctor.',
+        });
+      }
     }
 
     // Remove patient from doctor's list

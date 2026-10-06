@@ -23,8 +23,18 @@ const AdminSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      default: 'admin',
-      enum: ['admin'],
+      default: 'assistant',
+      enum: ['admin', 'assistant'],
+    },
+    status: {
+      type: String,
+      default: 'pending',
+      enum: ['pending', 'approved', 'rejected'],
+    },
+    assignedDoctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Doctor',
+      default: null,
     },
   },
   { timestamps: true }
@@ -49,6 +59,9 @@ AdminSchema.methods.toJSON = function () {
   return obj;
 };
 
-// Note: email index is created by the unique:true constraint above
+// Compound Indexes for fast querying
+AdminSchema.index({ role: 1, status: 1 });
+AdminSchema.index({ assignedDoctor: 1 });
+AdminSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Admin', AdminSchema);

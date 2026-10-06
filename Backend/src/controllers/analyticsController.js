@@ -8,6 +8,64 @@ const Patient = require('../models/Patient');
  */
 const getDashboardStats = async (req, res, next) => {
   try {
+    // If assistant, provide scoped analytics for their assigned doctor
+    if (req.user && req.user.role === 'assistant') {
+      if (!req.user.assignedDoctor) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            role: 'assistant',
+            noDoctorAssigned: true,
+            assignedDoctor: null,
+            overview: { totalDoctors: 0, totalPatients: 0 },
+            conditionStats: [],
+            genderStats: [],
+            patientsPerDoctor: [],
+            trends: { last7DaysPatients: [], last7DaysDoctors: [] },
+            recent: { patients: [], doctors: [] },
+          },
+        });
+      }
+
+      const docId = req.user.assignedDoctor._id || req.user.assignedDoctor;
+      const doctor = await Doctor.findById(docId).lean();
+
+      const [totalPatients, conditionStats, genderStats, recentPatients] = await Promise.all([
+        Patient.countDocuments({ assignedDoctor: docId }),
+        Patient.aggregate([
+          { $match: { assignedDoctor: docId } },
+          { $group: { _id: '$condition', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $project: { condition: '$_id', count: 1, _id: 0 } },
+        ]),
+        Patient.aggregate([
+          { $match: { assignedDoctor: docId } },
+          { $group: { _id: '$gender', count: { $sum: 1 } } },
+          { $project: { gender: '$_id', count: 1, _id: 0 } },
+        ]),
+        Patient.find({ assignedDoctor: docId })
+          .populate('assignedDoctor', 'name specialization hospital email phone')
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .lean(),
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          role: 'assistant',
+          noDoctorAssigned: false,
+          assignedDoctor: doctor,
+          overview: { totalDoctors: 1, totalPatients },
+          conditionStats,
+          genderStats,
+          patientsPerDoctor: doctor ? [{ ...doctor, patientCount: totalPatients }] : [],
+          trends: { last7DaysPatients: [], last7DaysDoctors: [] },
+          recent: { patients: recentPatients, doctors: doctor ? [doctor] : [] },
+        },
+      });
+    }
+
     const [
       totalDoctors,
       totalPatients,
