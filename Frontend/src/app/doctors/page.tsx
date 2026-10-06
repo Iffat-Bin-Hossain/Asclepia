@@ -12,7 +12,7 @@ import {
   Plus, Search, Trash2, Edit2, X, Loader2,
   Stethoscope, Hospital, Users,
   ChevronUp, ChevronDown, ChevronsUpDown,
-  UserMinus
+  UserMinus, LayoutList, LayoutGrid
 } from 'lucide-react';
 import DateSearchInput from '@/components/ui/DateSearchInput';
 import DnaBackground from '@/components/ui/DnaBackground';
@@ -180,6 +180,7 @@ function DoctorPatientsModal({ doctor, onClose }: { doctor: Doctor; onClose: () 
   });
   const [patientSearchInput, setPatientSearchInput] = useState('');
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'auto' | 'table' | 'cards'>('auto');
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced search for doctor's patients (acts as filter)
@@ -244,60 +245,169 @@ function DoctorPatientsModal({ doctor, onClose }: { doctor: Doctor; onClose: () 
 
   return (
     <>
-
       <div className="modal-overlay" onClick={onClose}>
         <div
           className="modal-content"
-          style={{ maxWidth: '780px', width: '95%' }}
+          style={{ maxWidth: '920px', width: '95%', maxHeight: '90vh' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div
             style={{
-              padding: '20px 24px 16px',
+              padding: '18px 24px',
               borderBottom: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '12px',
+              gap: '16px',
             }}
           >
-            <div>
-              <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                {doctor.name}'s Patients
+            <div style={{ minWidth: 0, flex: 1, paddingRight: '8px' }}>
+              <h2
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={`${doctor.name}'s Patients`}
+              >
+                {doctor.name}&apos;s Patients
               </h2>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap' }}>
-                {doctor.specialization} • {doctor.hospital}
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  marginTop: '4px',
+                  marginBottom: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={`${doctor.specialization} • ${doctor.hospital}`}
+              >
+                {doctor.specialization} &bull; {doctor.hospital}
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
               <button
                 id="doctor-add-patient-btn"
                 onClick={() => setIsAddPatientModalOpen(true)}
                 className="btn btn-primary btn-sm"
+                style={{ whiteSpace: 'nowrap' }}
                 title="Add patient to this doctor"
               >
                 <Plus size={14} /> Add Patient
               </button>
               <button
                 onClick={onClose}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="Close"
               >
                 <X size={18} />
               </button>
             </div>
           </div>
 
-          {/* Search box working as the only filter */}
-          <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <DateSearchInput
-              id="doctor-patient-search"
-              value={patientSearchInput}
-              onChange={setPatientSearchInput}
-              size="sm"
-              placeholder="Search patient name, condition, diagnosis, phone, age, or date..."
-            />
+          {/* Search box & View Toggle toolbar */}
+          <div
+            style={{
+              padding: '12px 24px',
+              borderBottom: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: '220px' }}>
+              <DateSearchInput
+                id="doctor-patient-search"
+                value={patientSearchInput}
+                onChange={setPatientSearchInput}
+                size="sm"
+                placeholder="Search patient name, condition, diagnosis, phone, age, or date..."
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-base)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === 'table' ? 'var(--brand-primary)' : 'transparent',
+                  color: viewMode === 'table' ? 'var(--bg-base)' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Force Table View"
+              >
+                <LayoutList size={13} />
+                <span>Table</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === 'cards' ? 'var(--brand-primary)' : 'transparent',
+                  color: viewMode === 'cards' ? 'var(--bg-base)' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Force Mobile Cards View"
+              >
+                <LayoutGrid size={13} />
+                <span>Cards</span>
+              </button>
+              {viewMode !== 'auto' && (
+                <button
+                  type="button"
+                  onClick={() => setViewMode('auto')}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  title="Reset to Auto Responsive View"
+                >
+                  Auto
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Patients List Body */}
@@ -318,96 +428,128 @@ function DoctorPatientsModal({ doctor, onClose }: { doctor: Doctor; onClose: () 
               </div>
             ) : (
               <>
-                {/* Desktop Table View (>= md) */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th style={{ whiteSpace: 'nowrap' }}>Patient</th>
-                        <th style={{ whiteSpace: 'nowrap' }}>Age / Gender</th>
-                        <th style={{ whiteSpace: 'nowrap' }}>Condition</th>
-                        <th style={{ whiteSpace: 'nowrap' }}>Diagnosis</th>
-                        <th style={{ whiteSpace: 'nowrap' }}>Admitted</th>
-                        <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {patientsList.map((p: any) => {
-                        const badgeStyle = CONDITION_BADGE_STYLES[p.condition as keyof typeof CONDITION_BADGE_STYLES] || {};
-                        return (
-                          <tr key={p._id}>
-                            <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {p.name}
-                            </td>
-                            <td style={{ whiteSpace: 'nowrap', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                              {p.age}y • {p.gender}
-                            </td>
-                            <td style={{ whiteSpace: 'nowrap' }}>
-                              <span className="badge" style={{ ...badgeStyle, fontSize: '11px', padding: '2px 8px' }}>
-                                {p.condition}
-                              </span>
-                            </td>
-                            <td style={{ whiteSpace: 'nowrap', fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.diagnosis}>
-                              {p.diagnosis || '—'}
-                            </td>
-                            <td style={{ whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: '12px' }}>
-                              {formatDate(p.admissionDate || p.createdAt)}
-                            </td>
-                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <button
-                                onClick={() => handleRemovePatient(p._id, p.name)}
-                                className="btn btn-secondary btn-sm"
-                                title="Unassign patient from this doctor"
-                                disabled={removePatientMutation.isPending}
-                                style={{ padding: '3px 8px', fontSize: '11px' }}
-                              >
-                                <UserMinus size={12} /> Remove
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                {/* 1. Desktop Table View */}
+                {(viewMode === 'table' || viewMode === 'auto') && (
+                  <div className={viewMode === 'auto' ? 'hidden md:block overflow-x-auto' : 'overflow-x-auto'}>
+                    <table className="data-table" style={{ width: '100%', minWidth: '700px' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ minWidth: '150px', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ minWidth: '105px', whiteSpace: 'nowrap' }}>Age / Gender</th>
+                          <th style={{ minWidth: '95px', whiteSpace: 'nowrap' }}>Condition</th>
+                          <th style={{ minWidth: '160px', whiteSpace: 'nowrap' }}>Diagnosis</th>
+                          <th style={{ minWidth: '105px', whiteSpace: 'nowrap' }}>Admitted</th>
+                          <th style={{ minWidth: '95px', textAlign: 'right', whiteSpace: 'nowrap' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {patientsList.map((p: any) => {
+                          const badgeStyle = CONDITION_BADGE_STYLES[p.condition as keyof typeof CONDITION_BADGE_STYLES] || {};
+                          return (
+                            <tr key={p._id}>
+                              <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div
+                                    style={{
+                                      width: '28px',
+                                      height: '28px',
+                                      borderRadius: '50%',
+                                      background: 'rgba(165, 236, 235, 0.12)',
+                                      border: '1px solid rgba(165, 236, 235, 0.25)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      color: 'var(--brand-primary)',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {p.name.charAt(0)}
+                                  </div>
+                                  <span>{p.name}</span>
+                                </div>
+                              </td>
+                              <td style={{ whiteSpace: 'nowrap', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                                {p.age}y &bull; {p.gender}
+                              </td>
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                <span className="badge" style={{ ...badgeStyle, fontSize: '11px', padding: '2px 8px' }}>
+                                  {p.condition}
+                                </span>
+                              </td>
+                              <td style={{ whiteSpace: 'nowrap', fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.diagnosis}>
+                                {p.diagnosis || '—'}
+                              </td>
+                              <td style={{ whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: '12px' }}>
+                                {formatDate(p.admissionDate || p.createdAt)}
+                              </td>
+                              <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                <button
+                                  onClick={() => handleRemovePatient(p._id, p.name)}
+                                  className="btn btn-secondary btn-sm"
+                                  title="Unassign patient from this doctor"
+                                  disabled={removePatientMutation.isPending}
+                                  style={{ padding: '3px 9px', fontSize: '11px' }}
+                                >
+                                  <UserMinus size={12} /> Remove
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
-                {/* Mobile Card View (< md) */}
-                <div className="block md:hidden space-y-3">
-                  {patientsList.map((p: any) => {
-                    const badgeStyle = CONDITION_BADGE_STYLES[p.condition as keyof typeof CONDITION_BADGE_STYLES] || {};
-                    return (
-                      <div
-                        key={p._id}
-                        className="bg-[#070d14]/90 border border-[#A5ECEB]/20 rounded-xl p-3.5 space-y-2.5 shadow"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <h4 className="text-sm font-bold text-slate-100">{p.name}</h4>
-                            <p className="text-xs text-slate-400 mt-0.5">{p.age}y • {p.gender}</p>
+                {/* 2. Mobile Card System */}
+                {(viewMode === 'cards' || viewMode === 'auto') && (
+                  <div className={viewMode === 'auto' ? 'block md:hidden space-y-3' : 'space-y-3'}>
+                    {patientsList.map((p: any) => {
+                      const badgeStyle = CONDITION_BADGE_STYLES[p.condition as keyof typeof CONDITION_BADGE_STYLES] || {};
+                      return (
+                        <div
+                          key={p._id}
+                          className="bg-[#070d14]/90 border border-[#A5ECEB]/20 rounded-xl p-3.5 space-y-2.5 shadow hover:border-[#A5ECEB]/40 transition-all"
+                        >
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-full bg-[#A5ECEB]/15 border border-[#A5ECEB]/30 flex items-center justify-center font-bold text-[#A5ECEB] text-xs flex-shrink-0">
+                                {p.name.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-sm font-bold text-slate-100 truncate">{p.name}</h4>
+                                <p className="text-xs text-slate-400 mt-0.5">{p.age}y &bull; {p.gender}</p>
+                              </div>
+                            </div>
+                            <span className="badge flex-shrink-0" style={{ ...badgeStyle, fontSize: '11px', padding: '2px 8px' }}>
+                              {p.condition}
+                            </span>
                           </div>
-                          <span className="badge" style={{ ...badgeStyle, fontSize: '11px', padding: '2px 8px' }}>
-                            {p.condition}
-                          </span>
-                        </div>
-                        {p.diagnosis && (
-                          <div className="text-xs text-slate-300 bg-[#0b151f] p-2 rounded border border-[#A5ECEB]/10">
-                            <span className="text-slate-400">Diagnosis: </span>{p.diagnosis}
+
+                          {p.diagnosis && (
+                            <div className="text-xs text-slate-300 bg-[#0b151f] p-2.5 rounded-lg border border-[#A5ECEB]/10">
+                              <span className="text-slate-400 font-medium">Diagnosis: </span>
+                              {p.diagnosis}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pt-2 border-t border-[#A5ECEB]/10 text-xs text-slate-400">
+                            <span>Admitted: {formatDate(p.admissionDate || p.createdAt)}</span>
+                            <button
+                              onClick={() => handleRemovePatient(p._id, p.name)}
+                              disabled={removePatientMutation.isPending}
+                              className="inline-flex items-center gap-1.5 text-slate-300 hover:text-[#A5ECEB] bg-[#070d14] hover:bg-[#101e2b] px-2.5 py-1 rounded-lg border border-[#A5ECEB]/20 text-xs font-medium transition-colors"
+                            >
+                              <UserMinus size={12} /> Remove
+                            </button>
                           </div>
-                        )}
-                        <div className="flex items-center justify-between pt-1 border-t border-[#A5ECEB]/10 text-xs text-slate-400">
-                          <span>Admitted: {formatDate(p.admissionDate || p.createdAt)}</span>
-                          <button
-                            onClick={() => handleRemovePatient(p._id, p.name)}
-                            disabled={removePatientMutation.isPending}
-                            className="inline-flex items-center gap-1 text-slate-300 hover:text-slate-100 bg-slate-800/80 px-2.5 py-1 rounded border border-slate-700 text-xs font-medium"
-                          >
-                            <UserMinus size={12} /> Remove
-                          </button>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
 

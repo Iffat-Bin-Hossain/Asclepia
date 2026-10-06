@@ -21,6 +21,20 @@ const AdminSchema = new mongoose.Schema(
       default: 'Admin',
       trim: true,
     },
+    age: {
+      type: Number,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other'],
+      default: null,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     role: {
       type: String,
       default: 'assistant',
@@ -30,6 +44,20 @@ const AdminSchema = new mongoose.Schema(
       type: String,
       default: 'pending',
       enum: ['pending', 'approved', 'rejected'],
+    },
+    requestedDoctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Doctor',
+      default: null,
+    },
+    requestedDoctorName: {
+      type: String,
+      default: null,
+    },
+    reason: {
+      type: String,
+      trim: true,
+      default: null,
     },
     assignedDoctor: {
       type: mongoose.Schema.Types.ObjectId,

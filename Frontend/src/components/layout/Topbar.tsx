@@ -53,7 +53,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
           {isAdmin ? (
             <ShieldCheck className="w-3.5 h-3.5 text-[#A5ECEB]" />
           ) : (
-            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <UserCheck className="w-3.5 h-3.5 text-[#A5ECEB]" />
           )}
         </div>
       </div>

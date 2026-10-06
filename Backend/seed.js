@@ -292,9 +292,146 @@ const seed = async () => {
     }
     console.log(`[Seed] Seeded ${initialPatients.length} patients and linked to doctors.`);
 
+    // Insert or update the 10 assistant signups
+    const initialAssistants = [
+      {
+        name: 'Md. Arif Hossain',
+        age: 28,
+        gender: 'Male',
+        phone: '01711-452831',
+        email: 'arif.hossain@example.com',
+        requestedDoctorName: 'Dr. Sakurul Islam',
+        status: 'pending',
+        reason: 'Wants to assist with orthopedic patient management',
+      },
+      {
+        name: 'Sadia Rahman',
+        age: 25,
+        gender: 'Female',
+        phone: '01819-637245',
+        email: 'sadia.rahman@example.com',
+        requestedDoctorName: 'Moynul Hasan',
+        status: 'pending',
+        reason: 'Interested in supporting clinical psychology sessions',
+      },
+      {
+        name: 'Tanvir Ahmed',
+        age: 31,
+        gender: 'Male',
+        phone: '01915-284763',
+        email: 'tanvir.ahmed@example.com',
+        requestedDoctorName: 'Dr. Fahmina Sobhan',
+        status: 'pending',
+        reason: 'ENT patient coordination and appointment support',
+      },
+      {
+        name: 'Nusrat Jahan',
+        age: 26,
+        gender: 'Female',
+        phone: '01624-719538',
+        email: 'nusrat.jahan@example.com',
+        requestedDoctorName: 'Dr. Bibi Joynab Rima',
+        status: 'pending',
+        reason: 'Pediatric patient assistance',
+      },
+      {
+        name: 'Md. Rakib Hasan',
+        age: 30,
+        gender: 'Male',
+        phone: '01318-562794',
+        email: 'rakib.hasan@example.com',
+        requestedDoctorName: 'Dr. Suman Chowdhury',
+        status: 'pending',
+        reason: 'Medicine department assistance',
+      },
+      {
+        name: 'Farzana Akter',
+        age: 27,
+        gender: 'Female',
+        phone: '01745-927316',
+        email: 'farzana.akter@example.com',
+        requestedDoctorName: 'Dr. Farzana Yasmin (Nimme)',
+        status: 'pending',
+        reason: 'Patient follow-up and documentation',
+      },
+      {
+        name: 'Imran Kabir',
+        age: 33,
+        gender: 'Male',
+        phone: '01837-415829',
+        email: 'imran.kabir@example.com',
+        requestedDoctorName: 'Dr. Md. Shafiqul Islam Dewan',
+        status: 'pending',
+        reason: 'Respiratory patient coordination',
+      },
+      {
+        name: 'Jannatul Ferdous',
+        age: 24,
+        gender: 'Female',
+        phone: '01928-746351',
+        email: 'jannatul.ferdous@example.com',
+        requestedDoctorName: 'Dr. M R Jahik Miah',
+        status: 'pending',
+        reason: 'ENT appointment and patient support',
+      },
+      {
+        name: 'Md. Shakil Ahmed',
+        age: 29,
+        gender: 'Male',
+        phone: '01618-395742',
+        email: 'shakil.ahmed@example.com',
+        requestedDoctorName: 'Dr. Md. Nazim Uddin',
+        status: 'pending',
+        reason: 'General patient assistance',
+      },
+      {
+        name: 'Rifat Karim',
+        age: 32,
+        gender: 'Male',
+        phone: '01309-824615',
+        email: 'rifat.karim@example.com',
+        requestedDoctorName: 'Dr. Akhlas Bhuiyan',
+        status: 'pending',
+        reason: 'Sports injury patient coordination',
+      },
+    ];
+
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(12);
+    const defaultAssistantPassword = await bcrypt.hash('Assistant@123', salt);
+
+    for (const a of initialAssistants) {
+      const doc = await Doctor.findOne({
+        name: new RegExp(a.requestedDoctorName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'i'),
+      });
+      const doctorId = doc ? doc._id : null;
+      const assistantDoc = {
+        name: a.name,
+        email: a.email.toLowerCase(),
+        age: a.age,
+        gender: a.gender,
+        phone: a.phone,
+        role: 'assistant',
+        status: a.status,
+        requestedDoctor: doctorId,
+        requestedDoctorName: a.requestedDoctorName,
+        reason: a.reason,
+      };
+
+      const existing = await Admin.findOne({ email: a.email.toLowerCase() });
+      if (!existing) {
+        assistantDoc.password = defaultAssistantPassword;
+        await Admin.create(assistantDoc);
+      } else {
+        await Admin.findByIdAndUpdate(existing._id, { $set: assistantDoc });
+      }
+    }
+    console.log(`[Seed] Seeded ${initialAssistants.length} assistants into database.`);
+
     const totalDocs = await Doctor.countDocuments();
     const totalPatients = await Patient.countDocuments();
-    console.log(`[Seed] Total doctors: ${totalDocs}, Total patients: ${totalPatients}`);
+    const totalAssistants = await Admin.countDocuments({ role: 'assistant' });
+    console.log(`[Seed] Total doctors: ${totalDocs}, Total patients: ${totalPatients}, Total assistants: ${totalAssistants}`);
 
     process.exit(0);
   } catch (error) {

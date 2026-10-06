@@ -122,7 +122,7 @@ export default function DateSearchInput({
         <span
           className="absolute -top-5 right-2 text-[10px] font-semibold text-[#A5ECEB] bg-[#A5ECEB]/10 px-2 py-0.5 rounded-full border border-[#A5ECEB]/30 flex items-center gap-1 select-none pointer-events-none"
         >
-          <span>📅 Date Search Active</span>
+          <span>Date Search Active</span>
         </span>
       )}
     </div>

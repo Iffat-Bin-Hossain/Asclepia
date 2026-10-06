@@ -29,7 +29,10 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('dt_token');
       localStorage.removeItem('dt_admin');
-      window.location.href = '/login';
+      const publicPaths = ['/', '/login', '/register'];
+      if (!publicPaths.includes(window.location.pathname)) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

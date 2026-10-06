@@ -1,6 +1,8 @@
 const express = require('express');
 const {
   getAssistants,
+  createAssistant,
+  updateAssistant,
   updateAssistantStatus,
   assignDoctor,
   deleteAssistant,
@@ -13,6 +15,8 @@ const router = express.Router();
 router.use(protect, requireAdmin);
 
 router.get('/', getAssistants);
+router.post('/', createAssistant);
+router.put('/:id', updateAssistant);
 router.put('/:id/status', updateAssistantStatus);
 router.put('/:id/assign-doctor', assignDoctor);
 router.delete('/:id', deleteAssistant);

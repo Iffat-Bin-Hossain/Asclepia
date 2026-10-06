@@ -11,6 +11,7 @@ import {
   DashboardStats,
   MonthlyStats,
   Assistant,
+  AssistantFilters,
 } from '@/types';
 
 // ============================================
@@ -19,7 +20,19 @@ import {
 export const authApi = {
   login: (credentials: LoginCredentials) =>
     apiClient.post<AuthResponse>('/auth/login', credentials),
-  register: (data: { email: string; password: string; name: string }) =>
+  getSignupDoctors: () =>
+    apiClient.get<ApiResponse<Pick<Doctor, '_id' | 'name' | 'specialization' | 'hospital'>[]>>('/auth/doctors'),
+  register: (data: {
+    email: string;
+    password: string;
+    name: string;
+    age?: number;
+    gender?: string;
+    phone?: string;
+    requestedDoctor?: string;
+    requestedDoctorName?: string;
+    reason?: string;
+  }) =>
     apiClient.post<AuthResponse>('/auth/register', data),
   getMe: () => apiClient.get<ApiResponse<{ admin: any }>>('/auth/me'),
 };
@@ -98,8 +111,14 @@ export const analyticsApi = {
 // Assistant API (Admin Management)
 // ============================================
 export const assistantApi = {
-  getAll: (params: { search?: string; status?: string } = {}) =>
-    apiClient.get<ApiResponse<Assistant[]>>('/assistants', { params }),
+  getAll: (filters: AssistantFilters = {}) =>
+    apiClient.get<PaginatedResponse<Assistant>>('/assistants', { params: filters }),
+
+  create: (data: Partial<Assistant> & { password?: string }) =>
+    apiClient.post<ApiResponse<Assistant>>('/assistants', data),
+
+  update: (id: string, data: Partial<Assistant>) =>
+    apiClient.put<ApiResponse<Assistant>>(`/assistants/${id}`, data),
 
   updateStatus: (id: string, status: 'approved' | 'rejected' | 'pending') =>
     apiClient.put<ApiResponse<Assistant>>(`/assistants/${id}/status`, { status }),

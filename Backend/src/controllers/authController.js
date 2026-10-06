@@ -1,4 +1,5 @@
 const Admin = require('../models/Admin');
+const Doctor = require('../models/Doctor');
 const { generateToken } = require('../utils/helpers');
 const { sendWelcomeEmail } = require('../utils/emailService');
 const { validationResult } = require('express-validator');
@@ -92,7 +93,17 @@ const register = async (req, res, next) => {
       return res.status(400).json({ success: false, message: errors.array()[0].msg });
     }
 
-    const { email, password, name } = req.body;
+    const {
+      email,
+      password,
+      name,
+      age,
+      gender,
+      phone,
+      requestedDoctor,
+      requestedDoctorName,
+      reason,
+    } = req.body;
 
     const existing = await Admin.findOne({ email });
     if (existing) {
@@ -104,8 +115,14 @@ const register = async (req, res, next) => {
       email,
       password,
       name: name || 'Assistant',
+      age: age ? Number(age) : null,
+      gender: gender || null,
+      phone: phone || null,
       role: 'assistant',
       status: 'pending',
+      requestedDoctor: requestedDoctor || null,
+      requestedDoctorName: requestedDoctorName || null,
+      reason: reason || null,
       assignedDoctor: null,
     });
 
@@ -131,4 +148,21 @@ const register = async (req, res, next) => {
   }
 };
 
-module.exports = { login, getMe, register };
+/**
+ * @desc  Minimal public doctor list for the assistant signup form
+ * @route GET /api/auth/doctors
+ * @access Public
+ */
+const getSignupDoctors = async (req, res, next) => {
+  try {
+    const doctors = await Doctor.find({ isActive: { $ne: false } })
+      .select('name specialization hospital')
+      .sort({ name: 1 })
+      .lean();
+    res.status(200).json({ success: true, data: doctors });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { login, getMe, register, getSignupDoctors };

@@ -18,8 +18,14 @@ export interface Assistant {
   _id: string;
   email: string;
   name: string;
+  age?: number | null;
+  gender?: 'Male' | 'Female' | 'Other' | null;
+  phone?: string | null;
   role: 'assistant';
   status: 'pending' | 'approved' | 'rejected';
+  requestedDoctor?: Doctor | string | null;
+  requestedDoctorName?: string | null;
+  reason?: string | null;
   assignedDoctor?: Doctor | string | null;
   createdAt: string;
   updatedAt?: string;
@@ -86,6 +92,7 @@ export interface PaginatedResponse<T> {
   data: T[];
   doctor?: { _id: string; name: string; specialization?: string; hospital?: string };
   pagination: Pagination;
+  meta?: { total?: number; pendingCount?: number };
   noDoctorAssigned?: boolean;
 }
 
@@ -174,6 +181,15 @@ export interface PatientFilters {
   endDate?: string;
   minAge?: number | string;
   maxAge?: number | string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface AssistantFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'pending' | 'approved' | 'rejected' | 'all';
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }

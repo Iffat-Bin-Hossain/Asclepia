@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/lib/api';
@@ -8,14 +8,14 @@ import { getErrorMessage } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
-  Eye, EyeOff, Loader2, Lock, Mail, User, CheckCircle2, XCircle, UserPlus, ArrowRight, Home, Clock, ShieldAlert
+  Eye, EyeOff, Loader2, Lock, Mail, User, CheckCircle2, XCircle, UserPlus, ArrowRight, Home, Clock
 } from 'lucide-react';
 import AnimatedAsclepiaLogo from '@/components/AnimatedAsclepiaLogo';
 import DnaBackground from '@/components/ui/DnaBackground';
 
 function PasswordRequirement({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-1.5 text-xs transition-colors ${ok ? 'text-emerald-400' : 'text-slate-500'}`}>
+    <div className={`flex items-center gap-1.5 text-xs transition-colors ${ok ? 'text-[#7DFDF0]' : 'text-slate-500'}`}>
       {ok ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <XCircle className="w-3.5 h-3.5 flex-shrink-0 opacity-40" />}
       <span>{label}</span>
     </div>
@@ -31,14 +31,8 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, admin } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router]);
 
   // Real-time password criteria
   const rules = {
@@ -109,7 +103,6 @@ export default function RegisterPage() {
       </div>
     );
   }
-
 
   return (
     <div
@@ -233,7 +226,60 @@ export default function RegisterPage() {
             boxSizing: 'border-box',
           }}
         >
-          {isSuccess ? (
+          {isAuthenticated && !isSuccess ? (
+            /* ── ALREADY SIGNED IN NOTICE ── */
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#f0fdfa', margin: '0 0 8px' }}>
+                You are already signed in
+              </h2>
+              <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 20px' }}>
+                Signed in as <span style={{ color: '#A5ECEB', fontWeight: 600 }}>{admin?.email}</span>.
+                Sign out to register a new assistant account.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  id="register-signout"
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('dt_token');
+                    localStorage.removeItem('dt_admin');
+                    window.location.replace('/register');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 20px',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#070d14',
+                    backgroundColor: '#A5ECEB',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Sign out and register
+                </button>
+                <button
+                  id="register-go-dashboard"
+                  type="button"
+                  onClick={() => router.push('/dashboard')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 20px',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#f0fdfa',
+                    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                    border: '1px solid rgba(165, 236, 235, 0.25)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Back to dashboard
+                </button>
+              </div>
+            </div>
+          ) : isSuccess ? (
             /* ── SUCCESS STATE: APPROVAL PENDING ── */
             <div style={{ textAlign: 'center', padding: '12px 0' }}>
               <div
@@ -579,13 +625,13 @@ export default function RegisterPage() {
                 </button>
               </form>
 
-              {/* Bottom redirection */}
-              <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(165, 236, 235, 0.1)', textAlign: 'center' }}>
+              {/* Form Footer */}
+              <div style={{ marginTop: '24px', textAlign: 'center', paddingTop: '16px', borderTop: '1px solid rgba(165, 236, 235, 0.1)' }}>
                 <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
-                  Already registered?{' '}
+                  Already have an approved account?{' '}
                   <Link
                     href="/login"
-                    style={{ color: '#A5ECEB', fontWeight: 600, textDecoration: 'none', marginLeft: '4px' }}
+                    style={{ color: '#A5ECEB', fontWeight: 600, textDecoration: 'none' }}
                   >
                     Sign In
                   </Link>
@@ -596,11 +642,19 @@ export default function RegisterPage() {
         </div>
       </main>
 
-      {/* ── Minimal Footer ── */}
-      <footer style={{ width: '100%', textAlign: 'center', zIndex: 10, padding: '16px', boxSizing: 'border-box' }}>
-        <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, margin: 0 }}>
-          Asclepia Medical Systems &bull; Secure Encrypted Access
-        </p>
+      {/* ── Footer ── */}
+      <footer
+        style={{
+          width: '100%',
+          textAlign: 'center',
+          padding: '18px 24px',
+          boxSizing: 'border-box',
+          fontSize: '11px',
+          color: '#64748b',
+          zIndex: 10,
+        }}
+      >
+        <span>Asclepia Healthcare Systems &bull; Clinical Operations Platform</span>
       </footer>
     </div>
   );

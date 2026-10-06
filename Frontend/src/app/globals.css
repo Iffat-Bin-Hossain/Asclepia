@@ -26,10 +26,10 @@
   --border-default: rgba(165, 236, 235, 0.16);
   --border-strong: rgba(165, 236, 235, 0.32);
 
-  /* Status colors */
-  --color-success: #34d399;
+  /* Status colors - Asclepia cohesive palette */
+  --color-success: #7DFDF0;
   --color-warning: #fbbf24;
-  --color-danger: #f87171;
+  --color-danger: #94a3b8;
   --color-info: #38bdf8;
 }
 
@@ -192,9 +192,9 @@ body {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: rgba(248, 81, 73, 0.12);
-  color: #fca5a5;
-  border-color: rgba(248, 81, 73, 0.3);
+  background: rgba(165, 236, 235, 0.08);
+  color: var(--brand-primary);
+  border-color: rgba(165, 236, 235, 0.25);
 }
 
 .btn-sm {
